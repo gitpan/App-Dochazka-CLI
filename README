@@ -1,0 +1,15 @@
+NAME
+    App::Dochazka::CLI - Dochazka command line client
+
+VERSION
+    Version 0.010
+
+SYNOPSIS
+    Dochazka command line client.
+
+        bash$ dochazka-cli
+        Dochazka(2014-08-08) demo> 
+
+DESCRIPTION
+    This is the Dochazka command line client.
+

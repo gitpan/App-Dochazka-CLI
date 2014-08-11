@@ -1,0 +1,137 @@
+#!/usr/bin/perl
+# ************************************************************************* 
+# Copyright (c) 2014, SUSE LLC
+# 
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+# 
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+# 
+# 3. Neither the name of SUSE LLC nor the names of its contributors may be
+# used to endorse or promote products derived from this software without
+# specific prior written permission.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+# ************************************************************************* 
+#
+# Dochazka CLI script
+#
+use 5.012;
+use strict;
+use warnings;
+
+use App::CELL::Test::LogToFile;
+use App::CELL qw( $CELL $log $site $meta );
+use App::Dochazka::CLI::HTTP qw( send_req );
+use App::Dochazka::CLI::Parser;
+use App::Dochazka::Model::Employee;
+use Data::Dumper;
+use File::ShareDir;
+use Term::ReadLine;
+use Time::Piece;
+use Time::Seconds;
+use Try::Tiny;
+
+local $Data::Dumper::Terse = 1;
+
+my $_t = localtime;
+my $today = $_t->ymd;
+my $current_date = $today;
+my $current_emp = App::Dochazka::Model::Employee->spawn;
+
+#
+# Initialization routine: might die
+#
+sub init_cli_client {
+
+    # always load the App::Dochazka::CLI distro sharedir
+    my $target = File::ShareDir::dist_dir('App-Dochazka-CLI');
+    my $status = $CELL->load( sitedir => $target );
+    die $status->text unless $status->ok;
+
+    $status = $CELL->load( sitedir => '/etc/dochazka-cli' );
+    die $status->text unless $status->ok;
+
+    $log->init( ident => 'dochazka-cli', debug_mode => 1 );
+
+    # initialize the LWP::UserAgent object
+    App::Dochazka::CLI::HTTP::init_ua();
+
+    # prompt for nick if none provided in site configuration
+    if ( ! $site->DOCHAZKA_REST_LOGIN_NICK ) {
+        print "Server auth nick:     ";
+        $meta->set( 'CURRENT_EMPLOYEE_NICK', <> );
+    }
+
+    # prompt for password if none provided in site configuration
+    if ( ! $site->DOCHAZKA_REST_LOGIN_PASSWORD ) {
+        print "Server auth password: ";
+        $meta->set( 'CURRENT_EMPLOYEE_PASSWORD', <> );
+    }
+
+    # get info about us
+    $status = send_req( 'GET', '/employee/current' );
+    return $status unless $status->ok;
+    $current_emp->reset( %{ $status->payload } );
+    return $CELL->status_ok;
+}
+
+#
+# get prompt
+#
+sub get_prompt {
+    return "Dochazka($current_date) " . $current_emp->nick . " " . uc $current_emp->priv . "> ";
+}
+
+
+# -------------------------------------------------------------------------
+# main
+# -------------------------------------------------------------------------
+
+# initialize 
+my $status;
+
+if ( ( my $status = init_cli_client() )->not_ok ) {
+    print '(' . $status->level . ') ' . $status->text . "\n";
+    exit;
+} else {
+    print "Server is alive\n";
+}
+
+my $term = new Term::ReadLine 'dochazka-cli';
+
+my $cmd;
+while ( defined ( $cmd = $term->readline( get_prompt() ) ) ) {
+    my @tokens = split /\s+/, $cmd;
+    #print join( ' ', @tokens ), "\n";
+    try { 
+        App::Dochazka::CLI::Parser::parse_tokens( [], \@tokens ); 
+    } catch { 
+        $status = $_; 
+    };
+    last if $status->code eq 'DOCHAZKA_CLI_EXIT';
+    if ( $status->ok and $status->payload ) {
+        print Dumper( $status->payload );
+    } else {
+        print( ( $status->code eq 'DOCHAZKA_CLI_PARSE_ERROR' ) 
+            ? $status->text . "\n"
+            : '(' . $status->level . ') ' . $status->text . "\n" );
+    }
+}

@@ -1,0 +1,49 @@
+Revision history for App-Dochazka-CLI
+
+0.001  2014-08-08 14:09 CEST
+- first public release of embryonic CLI script
+
+0.002  2014-08-08 14:17 CEST
+- break parser out into a module
+
+0.003  2014-08-08 14:31 CEST
+- debugging
+
+0.004  2014-08-08 15:35 CEST
+- CLI.pm: add DESCRIPTION section to POD
+
+0.005  2014-08-10 14:45 CEST
+- fix bug "init routine not loading App-Dochazka-CLI sharedir"
+- expand GET EMPLOYEE command:
+  - GET EMPLOYEE still returns current employee
+  - GET EMPLOYEE $INTEGER returns employee with EID $INTEGER
+  - GET EMPLOYEE $STRING returns employee with nick $STRING
+  - GET EMPLOYEE $STRING-CONTAINING-% runs a 'LIKE' search for multiple employees
+- add ReadLine/History support using Term::ReadLine::Perl5
+- split off 'send_req' routine into new App::Dochazka::CLI::HTTP module
+- fix bug "'get employee NON-EXISTENT-NICK' should produce an error message;
+  instead, it says 'undef'"
+
+0.006  2014-08-10 18:37 CEST
+- Build.PL: add dependency HTTP::Cookies
+- bin/dochazka-cli: use App::Dochazka::Model::Employee instead of inheriting from it
+- HTTP.pm: construct LWP::UserAgent object with cookie_jar
+- config/CLI_Config.pm: make a proper _Config.pm file for the application
+
+0.007  2014-08-10 20:12 CEST
+- bin/dochazka-cli: prompt for nick/password if not given in site configuration
+- HTTP.pm: add 'init_ua' and 'cookie_jar' functions, use nick/password
+  prompted from user if not given in site config
+- Parser.pm: add GET COO[KIES]
+- Build.PL: update dependencies
+
+0.008  2014-08-10 22:51 CEST
+- fix bug "bin/dochazka-cli throws 'Odd number of arguments' error at startup"
+
+0.009  2014-08-10 22:56 CEST
+- Parser.pm: add GET SES[SION]
+
+0.010  2014-08-11 16:15 CEST
+- goodbye 'Term::ReadLine::Perl5' (depends on 'rlib' which cannot be
+  packaged due to licensing issues), hello 'Term::ReadLine::Gnu'
+

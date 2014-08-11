@@ -1,0 +1,19 @@
+bin/dochazka-cli
+Build.PL
+Changes
+config/CLI_Config.pm
+config/CLI_Message_en.conf
+ignore.txt
+lib/App/Dochazka/CLI.pm
+lib/App/Dochazka/CLI/HTTP.pm
+lib/App/Dochazka/CLI/Parser.pm
+Makefile.PL
+MANIFEST			This list of files
+META.json
+META.yml
+README
+t/00-load.t
+t/boilerplate.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t
