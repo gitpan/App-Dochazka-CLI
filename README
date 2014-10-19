@@ -2,7 +2,7 @@ NAME
     App::Dochazka::CLI - Dochazka command line client
 
 VERSION
-    Version 0.010
+    Version 0.013
 
 SYNOPSIS
     Dochazka command line client.
@@ -12,4 +12,42 @@ SYNOPSIS
 
 DESCRIPTION
     This is the Dochazka command line client.
+
+COMMANDS
+    The command syntax is intended to be closely coupled with the underlying
+    REST resources.
+
+  Top-level resources
+    The top-level REST resources are documented at
+    App::Dochazka::REST::Dispatch.
+
+    `GET'
+    A lone `GET' (equivalent to `GET HELP') is analogous to sending a bare
+    GET request to the base URI.
+
+    `GET HELP'
+    The same as sending a GET request for the 'help' resource.
+
+    `GET COOKIE'
+    This command dumps the cookie jar. It is client-side only, so no
+    analogous REST resource.
+
+    `GET EMPLOYEE'
+    The same as sending a GET request for the 'employee' resource.
+
+    `GET EMPLOYEE CURRENT'
+    The same as sending a GET request for the 'employee/current' resource.
+
+    `GET EMPLOYEE [INTEGER]'
+    The same as sending a GET request for the 'employee/[INTEGER]' resource.
+    For example, `GET EMPLOYEE 1' should retrieve the profile of the
+    employee 'root'.
+
+    `GET EMPLOYEE [STRING]'
+    The same as sending a GET request for the 'employee/[STRING]' resource,
+    where [STRING] is an alphanumeric string. For example, `GET EMPLOYEE
+    root' should retrieve the profile of the employee 'root'.
+
+    `GET WHOAMI'
+    The same as sending a GET request for the 'whoami' resource.
 

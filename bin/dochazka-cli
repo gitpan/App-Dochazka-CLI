@@ -37,17 +37,48 @@ use 5.012;
 use strict;
 use warnings;
 
-use App::CELL::Test::LogToFile;
 use App::CELL qw( $CELL $log $site $meta );
 use App::Dochazka::CLI::HTTP qw( send_req );
 use App::Dochazka::CLI::Parser;
 use App::Dochazka::Model::Employee;
 use Data::Dumper;
 use File::ShareDir;
+use Getopt::Long 2.32;
+use Log::Any::Adapter;
+use Pod::Usage;
 use Term::ReadLine;
 use Time::Piece;
 use Time::Seconds;
 use Try::Tiny;
+
+=head1 NAME
+
+dochazka-cli - Command-line client for Dochazka Attendance & Time Tracking System
+
+=head1 VERSION
+
+Version 0.013
+
+=cut
+
+our $VERSION = '0.013';
+
+
+=head1 SYNOPSIS
+
+Dochazka command line client.
+
+    bash$ dochazka-cli
+    Dochazka(2014-08-08) demo>
+
+
+
+=head1 DESCRIPTION
+
+This is the Dochazka command line client.
+
+
+=cut
 
 local $Data::Dumper::Terse = 1;
 
@@ -57,33 +88,50 @@ my $current_date = $today;
 my $current_emp = App::Dochazka::Model::Employee->spawn;
 
 #
-# Initialization routine: might die
+# logger initialization routine
+#
+sub init_logger {
+    unlink $site->DOCHAZKA_CLI_LOG_FILE if $site->DOCHAZKA_CLI_LOG_FILE_RESET;
+    Log::Any::Adapter->set('File', $site->DOCHAZKA_CLI_LOG_FILE );
+    $log->init( ident => 'dochazka-cli', debug_mode => 1 );
+    $log->debug( 'Logger initialized' );
+}
+
+#
+# CLI client initialization routine: might die
 #
 sub init_cli_client {
+    my ( $user, $password ) = @_;
 
     # always load the App::Dochazka::CLI distro sharedir
     my $target = File::ShareDir::dist_dir('App-Dochazka-CLI');
     my $status = $CELL->load( sitedir => $target );
     die $status->text unless $status->ok;
 
-    $status = $CELL->load( sitedir => '/etc/dochazka-cli' );
+    $status = $CELL->load( sitedir => '/etc/dochazka-cli', debug_mode => 1 );
     die $status->text unless $status->ok;
 
-    $log->init( ident => 'dochazka-cli', debug_mode => 1 );
+    init_logger(); 
 
     # initialize the LWP::UserAgent object
     App::Dochazka::CLI::HTTP::init_ua();
 
     # prompt for nick if none provided in site configuration
-    if ( ! $site->DOCHAZKA_REST_LOGIN_NICK ) {
-        print "Server auth nick:     ";
-        $meta->set( 'CURRENT_EMPLOYEE_NICK', <> );
-    }
+    #if ( ! $site->DOCHAZKA_REST_LOGIN_NICK ) {
+    #    print "Server auth nick:     ";
+    #    $meta->set( 'CURRENT_EMPLOYEE_NICK', <> );
+    #}
+    $meta->set( 'CURRENT_EMPLOYEE_NICK', $user );
 
-    # prompt for password if none provided in site configuration
-    if ( ! $site->DOCHAZKA_REST_LOGIN_PASSWORD ) {
+    # prompt for password if necessary
+    if ( $user ne 'demo' and $password eq 'demo' ) {
         print "Server auth password: ";
-        $meta->set( 'CURRENT_EMPLOYEE_PASSWORD', <> );
+        my $input = <STDIN>;
+        chomp( $input ); 
+        $meta->set( 'CURRENT_EMPLOYEE_PASSWORD', $input );
+        print "Password set to " . $meta->CURRENT_EMPLOYEE_PASSWORD . "\n";
+    } else {
+        $meta->set( 'CURRENT_EMPLOYEE_PASSWORD', $password );
     }
 
     # get info about us
@@ -105,10 +153,21 @@ sub get_prompt {
 # main
 # -------------------------------------------------------------------------
 
+# process command-line options
+my $help = 0;
+my $user = 'demo';
+my $password = 'demo';
+GetOptions( 'help|?' => \$help, 'user|u=s' => \$user, 'password|p=s' => \$password );
+pod2usage(1) if $help;
+if ( $user eq 'root' and $password eq 'demo' ) {
+    # use default root password instead of demo
+    $password = 'immutable';
+}
+
 # initialize 
 my $status;
 
-if ( ( my $status = init_cli_client() )->not_ok ) {
+if ( ( my $status = init_cli_client($user, $password) )->not_ok ) {
     print '(' . $status->level . ') ' . $status->text . "\n";
     exit;
 } else {

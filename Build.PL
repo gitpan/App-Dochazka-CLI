@@ -30,6 +30,7 @@ my $build = Module::Build->new(
         'perl'               => 5.012,
         'HTTP::Cookies'      => 0,
         'HTTP::Request'      => 0,
+        'Getopt::Long'       => 2.32,
         'JSON'               => 0,
         'LWP::UserAgent'     => 0,
         'Params::Validate'   => 1.06,

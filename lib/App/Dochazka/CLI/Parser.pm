@@ -51,11 +51,11 @@ App::Dochazka::CLI::Parser - Parser for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.010
+Version 0.013
 
 =cut
 
-our $VERSION = '0.010';
+our $VERSION = '0.013';
 
 
 
@@ -98,9 +98,10 @@ sub parse_tokens {
     my @tokens = @$tokens;
     my $token = shift @tokens;
 
-    # GET ...
+    # GET (...)
     if    ( $token =~ m/^get/i and eq_deeply( $pre, [] ) ) { 
-        parse_tokens( [ 'GET' ], \@tokens );
+        parse_tokens( [ 'GET' ], \@tokens ) if @tokens;
+        die send_req( 'GET', '' );
     }   
 
     # GET COO[KIES]
@@ -108,25 +109,41 @@ sub parse_tokens {
         die $CELL->status_ok( 'COOKIE_JAR', payload => App::Dochazka::CLI::HTTP::cookie_jar() );
     }
 
-    # GET EMP[LOYEE]
+    # GET EMP[LOYEE] (...)
     elsif ( $token =~ m/^emp/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die send_req( 'GET', 'employee/current' ) if ! @tokens;
-        my $param = shift @tokens;
+        parse_tokens( [ 'GET', 'EMPLOYEE' ], \@tokens ) if @tokens;
+        die send_req( 'GET', 'employee' );
+    }
+
+    # GET EMP[LOYEE] CUR[RENT]
+    elsif ( $token =~ m/^cur/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
+        die send_req( 'GET', 'employee/current' );
+    }
 
     # GET EMP[LOYEE] $INTEGER
-        if ( $param =~ m/^\d+$/ ) {
-            die send_req( 'GET', "employee/eid/$param" );
+    elsif ( $token =~ m/^\d+$/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
+        die send_req( 'GET', "employee/eid/$token" );
+    }
 
     # GET EMP[LOYEE] $STRING
-        } else {
-            die send_req( 'GET', "employee/nick/$param" );
-        }
+    elsif ( $token =~ m/^[^\/]+$/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
+        die send_req( 'GET', "employee/nick/$token" );
+    }
+    
+    # GET HELP
+    elsif ( $token =~ m/^hel$/i and eq_deeply( $pre, [ 'GET' ] ) ) {
+        die send_req( 'GET', "employee/nick/$token" );
     }
     
     # GET SES[SION]
     elsif ( $token =~ m/^ses/i and eq_deeply( $pre, [ 'GET' ] ) ) {
         die send_req( 'GET', "session" );
     }
+
+    # GET WHO[AMI]
+    elsif ( $token =~ m/^who/i and eq_deeply( $pre, [] ) ) {
+        die send_req( 'GET', 'whoami' );
+    }   
 
     # PUT ...
     elsif ( $token =~ m/^put/i and eq_deeply( $pre, [] ) ) { 
@@ -140,8 +157,8 @@ sub parse_tokens {
     elsif ( $token =~ m/^del/i and eq_deeply( $pre, [] ) ) { 
     }   
 
-    # EXI[T]
-    elsif ( $token =~ m/^exi/i and eq_deeply( $pre, [] ) ) { 
+    # EXI[T], QU[IT], \Q
+    elsif ( $token =~ m/^(exi)|(qu)|(\\q)/i and eq_deeply( $pre, [] ) ) { 
         die $CELL->status_ok( 'DOCHAZKA_CLI_EXIT' );
     }   
 

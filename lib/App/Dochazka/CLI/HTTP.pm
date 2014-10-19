@@ -54,11 +54,11 @@ App::Dochazka::CLI::HTTP - HTTP for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.010
+Version 0.013
 
 =cut
 
-our $VERSION = '0.010';
+our $VERSION = '0.013';
 
 
 
@@ -129,16 +129,17 @@ sub send_req {
     my ( $method, $path ) = @_;
     $path = "/$path" unless $path =~ m/^\//;
 
-    # assemble request, send it, get response
+    # assemble request
     my $r = GET $site->DOCHAZKA_REST_SERVER . $path, 
                 Accept => 'application/json';
-    $r->authorization_basic( $site->DOCHAZKA_REST_LOGIN_NICK ||
-                             $meta->CURRENT_EMPLOYEE_NICK ||
-                             'demo',
-                             $site->DOCHAZKA_REST_LOGIN_PASSWORD ||
-                             $meta->CURRENT_EMPLOYEE_PASSWORD ||
-                             'demo',
-    );
+
+    # add basic auth
+    my $user = $meta->CURRENT_EMPLOYEE_NICK || 'demo';
+    my $password = $meta->CURRENT_EMPLOYEE_PASSWORD || 'demo';
+    $log->debug( "http_req: basic auth user $user / pass $password" );
+    $r->authorization_basic( $user, $password );
+
+    # send request, get response
     my $response = $ua->request( $r );
     my $code = $response->code;
 

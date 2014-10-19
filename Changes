@@ -47,3 +47,18 @@ Revision history for App-Dochazka-CLI
 - goodbye 'Term::ReadLine::Perl5' (depends on 'rlib' which cannot be
   packaged due to licensing issues), hello 'Term::ReadLine::Gnu'
 
+0.011  2014-10-17 23:01 CEST
+- Build.PL: add Getopt::Long dependency 
+- get user and password from command-line options instead of from site
+  configuration
+
+0.012  2014-10-18 10:06 CEST
+- process command-line options: 'help', 'user', 'password'
+- add dependencies: Getopt::Long, Pod::Usage
+- log to $HOME/.dochazka-cli.log by default, user can override in /etc/dochazka-cli
+- prompt for password if none specified on command line
+
+0.013  2014-10-19 07:55 CEST
+- CLI.pm: document commands and their syntax
+- Parser.pm: work on top-level GET commands
+

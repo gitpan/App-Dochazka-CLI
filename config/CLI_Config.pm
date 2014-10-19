@@ -57,6 +57,10 @@ set( 'DOCHAZKA_REST_LOGIN_PASSWORD', undef );
 #     default location of the cookie jar
 set( 'DOCHAZKA_CLI_COOKIE_JAR', "$ENV{HOME}/.cookies.txt" );
 
+# DOCHAZKA_CLI_LOG_FILE
+#     default location of the log file
+set( 'DOCHAZKA_CLI_LOG_FILE', "$ENV{HOME}/.dochazka-cli.log" );
+
 # -----------------------------------
 # DO NOT EDIT ANYTHING BELOW THIS LINE
 # -----------------------------------
