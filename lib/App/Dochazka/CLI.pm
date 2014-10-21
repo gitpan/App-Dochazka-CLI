@@ -44,11 +44,11 @@ App::Dochazka::CLI - Dochazka command line client
 
 =head1 VERSION
 
-Version 0.013
+Version 0.021
 
 =cut
 
-our $VERSION = '0.013';
+our $VERSION = '0.021';
 
 
 =head1 SYNOPSIS
@@ -71,46 +71,11 @@ This is the Dochazka command line client.
 The command syntax is intended to be closely coupled with the underlying REST resources.
 
 
-=head2 Top-level resources
+=head2 Top-level
 
 The top-level REST resources are documented at L<App::Dochazka::REST::Dispatch>.
 
-
-=head3 C<GET>
-
-A lone C<GET> (equivalent to C<GET HELP>) is analogous to sending a bare GET
-request to the base URI.
-
-=head3 C<GET HELP>
-
-The same as sending a GET request for the 'help' resource.
-
-=head3 C<GET COOKIE>
-
-This command dumps the cookie jar. It is client-side only, so no analogous REST resource.
-
-=head3 C<GET EMPLOYEE>
-
-The same as sending a GET request for the 'employee' resource.
-
-=head3 C<GET EMPLOYEE CURRENT>
-
-The same as sending a GET request for the 'employee/current' resource.
-
-=head3 C<GET EMPLOYEE [INTEGER]>
-
-The same as sending a GET request for the 'employee/[INTEGER]' resource. For
-example, C<GET EMPLOYEE 1> should retrieve the profile of the employee 'root'.
-
-=head3 C<GET EMPLOYEE [STRING]>
-
-The same as sending a GET request for the 'employee/[STRING]' resource, where
-[STRING] is an alphanumeric string. For example, C<GET EMPLOYEE root> should
-retrieve the profile of the employee 'root'.
-
-=head3 C<GET WHOAMI>
-
-The same as sending a GET request for the 'whoami' resource.
+The top-level CLI commands are documented at L<App::Dochazka::CLI::Parser>.
 
 =cut
 

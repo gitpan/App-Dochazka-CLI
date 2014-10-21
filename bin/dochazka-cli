@@ -57,11 +57,11 @@ dochazka-cli - Command-line client for Dochazka Attendance & Time Tracking Syste
 
 =head1 VERSION
 
-Version 0.013
+Version 0.021
 
 =cut
 
-our $VERSION = '0.013';
+our $VERSION = '0.021';
 
 
 =head1 SYNOPSIS
@@ -86,6 +86,7 @@ my $_t = localtime;
 my $today = $_t->ymd;
 my $current_date = $today;
 my $current_emp = App::Dochazka::Model::Employee->spawn;
+my $current_priv;
 
 #
 # logger initialization routine
@@ -135,9 +136,10 @@ sub init_cli_client {
     }
 
     # get info about us
-    $status = send_req( 'GET', '/employee/current' );
+    $status = send_req( 'GET', '/employee/current/priv' );
     return $status unless $status->ok;
-    $current_emp->reset( %{ $status->payload } );
+    $current_emp->reset( %{ $status->payload->{'current_emp'} } );
+    $current_priv = $status->payload->{'priv'};
     return $CELL->status_ok;
 }
 
@@ -145,7 +147,7 @@ sub init_cli_client {
 # get prompt
 #
 sub get_prompt {
-    return "Dochazka($current_date) " . $current_emp->nick . " " . uc $current_emp->priv . "> ";
+    return "Dochazka($current_date) " . $current_emp->nick . " " . uc $current_priv . "> ";
 }
 
 
@@ -187,10 +189,11 @@ while ( defined ( $cmd = $term->readline( get_prompt() ) ) ) {
     };
     last if $status->code eq 'DOCHAZKA_CLI_EXIT';
     if ( $status->ok and $status->payload ) {
-        print Dumper( $status->payload );
+        print $status->code . " (OK) " . $status->text . "\n";
+        print "Payload: " . Dumper( $status->payload );
     } else {
         print( ( $status->code eq 'DOCHAZKA_CLI_PARSE_ERROR' ) 
             ? $status->text . "\n"
-            : '(' . $status->level . ') ' . $status->text . "\n" );
+            : $status->code . ' (' . $status->level . ') ' . $status->text . "\n" );
     }
 }

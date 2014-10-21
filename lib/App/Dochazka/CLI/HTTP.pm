@@ -54,11 +54,11 @@ App::Dochazka::CLI::HTTP - HTTP for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.013
+Version 0.021
 
 =cut
 
-our $VERSION = '0.013';
+our $VERSION = '0.021';
 
 
 
@@ -87,8 +87,17 @@ our @EXPORT_OK = qw( send_req );
 
 =cut
 
+# user agent
 my $ua = LWP::UserAgent->new;
 
+# dispatch table with references to HTTP::Request::Common functions
+my %methods = ( 
+    GET => \&GET,
+    PUT => \&PUT,
+    POST => \&POST,
+    DELETE => \&DELETE,
+);
+             
 
 
 
@@ -125,32 +134,38 @@ bless it into a status object.
 =cut
 
 sub send_req {
+    no strict 'refs';
     # process arguments
-    my ( $method, $path ) = @_;
+    my ( $method, $path, $body_data ) = @_;
     $path = "/$path" unless $path =~ m/^\//;
+    $log->debug("send_req: path is $path");
 
     # assemble request
-    my $r = GET $site->DOCHAZKA_REST_SERVER . $path, 
-                Accept => 'application/json';
+    my $r = $methods{$method}->( 
+        $site->DOCHAZKA_REST_SERVER . $path, 
+        Accept => 'application/json',
+        Content_Type => 'application/json',
+        Content => $body_data,
+    );
 
     # add basic auth
     my $user = $meta->CURRENT_EMPLOYEE_NICK || 'demo';
     my $password = $meta->CURRENT_EMPLOYEE_PASSWORD || 'demo';
-    $log->debug( "http_req: basic auth user $user / pass $password" );
+    $log->debug( "send_req: basic auth user $user / pass $password" );
     $r->authorization_basic( $user, $password );
 
     # send request, get response
     my $response = $ua->request( $r );
     my $code = $response->code;
 
-    # return error status if request failed
+    # if HTTP response code is not 200 or 204, return control to
+    # bin/dochazka-cli (see there for how the return status is handled)
     return $CELL->status_err( 'DOCHAZKA_CLI_SERVER_ERROR', args => [ $response->status_line ] ) 
         unless grep { $code == $_ } ( 200, 204 );
 
-    # return status with payload if there is a payload
-    my $hr = $ua->request( $r )->content;
-    if ( $hr ) {
-        $hr = from_json( $hr );
+    #my $hr = $ua->request( $r )->content;
+    if ( $response->content ) {
+        my $hr = from_json( $response->content );
         $hr->{'_http_code'} = $response->code;
         return bless $hr, 'App::CELL::Status';
     } else {

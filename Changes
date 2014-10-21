@@ -62,3 +62,32 @@ Revision history for App-Dochazka-CLI
 - CLI.pm: document commands and their syntax
 - Parser.pm: work on top-level GET commands
 
+0.014  2014-10-19 08:44 CEST
+- move command POD to Parser.pm where it belongs
+- Parser.pm: add a couple more top-level GET commands
+
+0.015  2014-10-19 13:35 CEST
+- HTTP.pm: fix send_req so it is capable of sending requests with methods other
+  than GET
+- Parser.pm: add PUT and PUT HELP commands
+
+0.016  2014-10-19 13:53 CEST
+- HTTP.pm, Parser.pm: cleanup
+
+0.017  2014-10-19 22:33 CEST
+- implement more resources
+
+0.018  2014-10-20 08:32 CEST
+- Parser.pm: fix brokenness in 'GET WHOAMI' and 'PUT EMPLOYEE'
+
+0.019  2014-10-20 17:23 CEST
+- Parser.pm: fix a silly bug
+
+0.020  2014-10-20 22:09 CEST
+- Parser.pm: add 'GET CURRENT PRIV' command
+- bin/dochazka-cli: fix privilege brokenness; add status text to command output
+
+0.021  2014-10-21 10:44 CEST
+- Parser.pm: add 'GET EMPLOYEE COUNT' and get rid of conflicting 'GET
+  EMPLOYEE [STRING]'
+
