@@ -4,7 +4,7 @@
       "Smithfarm <presnypreklad@gmail.com>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4005, CPAN::Meta::Converter version 2.142060",
+   "generated_by" : "Module::Build version 0.4205",
    "license" : [
       "bsd"
    ],
@@ -44,15 +44,15 @@
    "provides" : {
       "App::Dochazka::CLI" : {
          "file" : "lib/App/Dochazka/CLI.pm",
-         "version" : "0.021"
+         "version" : "0.053"
       },
       "App::Dochazka::CLI::HTTP" : {
          "file" : "lib/App/Dochazka/CLI/HTTP.pm",
-         "version" : "0.021"
+         "version" : "0.053"
       },
       "App::Dochazka::CLI::Parser" : {
          "file" : "lib/App/Dochazka/CLI/Parser.pm",
-         "version" : "0.021"
+         "version" : "0.053"
       }
    },
    "release_status" : "stable",
@@ -65,5 +65,5 @@
          "url" : "https://sourceforge.net/p/dochazka/code/"
       }
    },
-   "version" : "0.021"
+   "version" : "0.053"
 }

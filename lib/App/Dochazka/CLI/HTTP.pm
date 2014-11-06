@@ -41,7 +41,7 @@ use warnings;
 use App::CELL qw( $CELL $log $site $meta );
 use Data::Dumper;
 use Exporter qw( import );
-use HTTP::Request::Common;
+use HTTP::Request::Common qw( GET PUT POST DELETE );
 use JSON;
 use LWP::UserAgent;
 
@@ -54,11 +54,11 @@ App::Dochazka::CLI::HTTP - HTTP for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.021
+Version 0.053
 
 =cut
 
-our $VERSION = '0.021';
+our $VERSION = '0.053';
 
 
 

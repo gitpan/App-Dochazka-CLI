@@ -91,3 +91,123 @@ Revision history for App-Dochazka-CLI
 - Parser.pm: add 'GET EMPLOYEE COUNT' and get rid of conflicting 'GET
   EMPLOYEE [STRING]'
 
+0.022  2014-10-21 16:26 CEST
+- bin/dochazka-cli: show response body on NOTICE status as well as OK
+- HTTP.pm: explicitly import GET PUT POST DELETE from HTTP::Request::Common
+- Parser.pm: properly implement 'metaparam/:param' and 'not_implemented'
+  resources
+
+0.023  2014-10-21 22:24 CEST
+- Parser.pm: fix $anything regex variable; support 'forbidden' resource; add
+  other missing top-level resources so now all are supported
+
+0.024  2014-10-22 16:42 CEST
+- Parser.pm: add POST EMPLOYEE EID command
+
+0.025  2014-10-23 10:55 CEST
+- Parser.pm: eliminate "POST METAPARAM"; fix "DELETE METAPARAM" so it will
+  actually work if/when implemented in the REST server
+
+0.026  2014-10-23 13:54 CEST
+- Parser.pm: make $anything really be anything; add "POST DOCU [RESOURCE]"
+  command
+
+0.027  2014-10-24 10:58 CEST
+- complete development workflow for employee resources
+- Parser.pm: add missing documentation and commands
+
+0.028  2014-10-24 15:27 CEST
+- Parser.pm: add privhistory commands
+
+0.029  2014-10-24 22:34 CEST
+- bin/dochazka-cli: fix bug "hitting ENTER at CLI prompt causes over a
+  screenful of error messages to be displayed"
+- Parser.pm: document and implement commands: 
+  - PUT PRIVHISTORY EID 
+  - PUT PRIVHISTORY NICK
+  - DELETE PRIVHISTORY EID 
+  - DELETE PRIVHISTORY NICK
+
+0.030  2014-10-25 12:05 CEST
+- bin/dochazka-cli: write a proper SYNOPSIS; add an optional 'sitedir'
+  command-line option; fix bug "dochazka-cli refuses to start unless
+  /etc/dochazka-cli directory exists and contains an empty file named
+  CLI_SiteConfig.pm"
+
+0.031  2014-10-25 23:20 CEST
+- Parser.pm: decide to move CLI documentation into REST resources; start
+  eliminating POD and streamlining the code; change 'privhistory' to 'priv'
+
+0.032  2014-10-26 22:31 CET
+- Parser.pm: embark on significant redesign of parse_tokens routine (WIP)
+
+0.033  2014-10-27 09:35 CET
+- Parser.pm: continue with wholesale refactor to make the parser more efficient
+  and maintainable
+
+0.034  2014-10-27 12:45 CET
+- Parser.pm: initial refactor complete; start (manual) testing
+
+0.035  2014-10-27 13:09 CET
+- Parser.pm: fix broken 'docu' command
+
+0.036  2014-10-27 14:26 CET
+- Parser.pm: tweak comments; fix "priv/current", "priv/eid/:eid/?:ts", and
+  "/priv/nick/:nick/?:ts" resource handlers
+
+0.037  2014-10-27 17:49 CET
+- Parser.pm: fix 'priv' handlers
+
+0.038  2014-10-28 09:29 CET
+- Parser.pm: handle activity resources; add '$method activity all' commands
+
+0.039  2014-10-29 09:31 CET
+- Parser.pm: support 'activity/all/disabled' resource
+
+0.040  2014-10-29 10:31 CET
+- Parser.pm: support 'activity/aid/:aid'
+
+0.041  2014-10-29 13:50 CET
+- Parser.pm: support PUT and DELETE requests for 'activity/aid/:aid'
+
+0.042  2014-10-29 16:40 CET
+- Parser.pm: support "/activity/code/:code"
+
+0.043  2014-10-29 22:53 CET
+- Parser.pm: support POST on 'activity/aid/:aid' and 'activity/code/:code',
+  even if just to verify 405 result
+
+0.044  2014-10-30 18:20 CET
+- Parser.pm: support 'activity/aid' and 'activity/code' resources
+
+0.045  2014-10-31 21:20 CET
+- Parser.pm: support 'docu/html' resource; fix 'post activity aid' command
+
+0.046  2014-11-03 12:19 CET
+- Parser.pm: change '/priv/current/...' and '/priv/history/current/...' to 
+  '/priv/self/...' and '/priv/history/self/...', respectively
+
+0.047  2014-11-03 13:06 CET
+- Parser.pm: cleanup and add 'activity/help'
+
+0.048  2014-11-03 15:54 CET
+- Parser.pm: support "/schedule/eid/:eid/?:ts", "/schedule/help",
+  "/schedule/nick/:nick/?:ts", and "/schedule/self/?:ts" resources
+
+0.049  2014-11-04 09:54 CET
+- Parser.pm: activate '$method schedule history ...' commands; put some stanzas
+  into alphabetical order by resource name
+
+0.050  2014-11-04 11:30 CET
+- Parser.pm: support 'schedule/intervals' and 'schedule/intervals/:shid'
+  resources
+
+0.051  2014-11-04 17:46 CET
+- Parser.pm: 'schedule/intervals' JSON body might start with either { or [
+
+0.052  2014-11-05 10:28 CET
+- Parser.pm: support 'schedule/all' and 'schedule/all/disabled' resources
+
+0.053  2014-11-06 16:35 CET
+- Parser.pm: support '/schedule/sid/:sid' resource
+

@@ -51,12 +51,12 @@ App::Dochazka::CLI::Parser - Parser for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.021
+Version 0.053
 
 =cut
 
-our $VERSION = '0.021';
-
+our $VERSION = '0.053';
+our $anything = qr/^.+$/i;
 
 
 
@@ -90,411 +90,492 @@ three characters.
 
 =cut
 
+my $method; # store the HTTP method in a package variable so it is remembered
+
 sub parse_tokens {
     my ( $pre, $tokens ) = @_; 
     return $CELL->status_err( "No more tokens" ) unless ref $tokens;
     my @tokens = @$tokens;
     my $token = shift @tokens;
 
+    # the first token designates the HTTP method
+    if ( @$pre == 0 ) { # first token is supposed to be the HTTP method
 
-=head2 C<GET>
+        # GET ''
+        if ( $token =~  m/^GET/i ) {
+            $method = 'GET';
+            parse_tokens( [ 'GET' ], \@tokens ) if @tokens;
+            die send_req( 'GET', '' );
+        }
 
-A lone C<GET> (equivalent to C<GET HELP>) is analogous to sending a bare GET
-request to the base URI.
+        # PUT ''
+        elsif ( $token =~ m/^PUT/i ) {
+            $method = 'PUT';
+            parse_tokens( [ 'PUT' ], \@tokens ) if @tokens;
+            die send_req( 'PUT', '' );
+        } 
+        
+        # POST ''
+        elsif ( $token =~ m/^POS/i ) {
+            $method = 'POST';
+            parse_tokens( [ 'POST' ], \@tokens ) if @tokens;
+            die send_req( 'POST', '' );
+        } 
+        
+        # DELETE ''
+        elsif ( $token =~ m/^DEL/i ) {
+            $method = 'DELETE';
+            parse_tokens( [ 'DELETE' ], \@tokens ) if @tokens;
+            die send_req( 'DELETE', '' );
+        }
 
-=cut
+        # EXIT, QUIT, and the like
+        elsif ( $token =~ m/^(exi)|(qu)|(\\q)/i and eq_deeply( $pre, [] ) ) { 
+            die $CELL->status_ok( 'DOCHAZKA_CLI_EXIT' );
+        }   
 
-    # GET (...)
-    if    ( $token =~ m/^get/i and eq_deeply( $pre, [] ) ) { 
-        parse_tokens( [ 'GET' ], \@tokens ) if @tokens;
-        die send_req( 'GET', '' );
-    }   
-
-
-=head2 C<GET BUGREPORT>
-
-The same as sending a GET request for the 'bugreport' resource.
-
-=cut
-
-    # GET BUG[REPORT]
-    elsif ( $token =~ m/^bug/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die send_req( 'GET', 'bugreport' );
+        die $CELL->status_err( 'DOCHAZKA_CLI_PARSE_ERROR' );
     }
 
+    # second token represents the resource class ( top-level, employee, priv, etc.)
+    if ( @$pre == 1 ) {
 
-=head2 C<GET COOKIE>
+        #
+        # activity resource: recurse
+        #
+        if ( $token =~ m/^act/i ) {
+            parse_tokens( [ $method, 'ACTIVITY' ], \@tokens ) if @tokens;
+            die send_req( $method, 'activity' );
+        }
 
-This command dumps the cookie jar. It is client-side only, so no analogous REST resource.
+        #
+        # employee resource: recurse
+        #
+        if ( $token =~ m/^emp/i ) {
+            parse_tokens( [ $method, 'EMPLOYEE' ], \@tokens ) if @tokens;
+            die send_req( $method, 'employee' );
+        }
 
-=cut
+        #
+        # priv resource: recurse
+        #
+        if ( $token =~ m/^pri/i ) {
+            parse_tokens( [ $method, 'PRIV' ], \@tokens ) if @tokens;
+            die send_req( $method, 'priv' );
+        }
 
-    # GET COO[KIES]
-    elsif ( $token =~ m/^coo/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die $CELL->status_ok( 'COOKIE_JAR', payload => App::Dochazka::CLI::HTTP::cookie_jar() );
-    }
+        #
+        # schedule resource: recurse
+        #
+        if ( $token =~ m/^sch/i ) {
+            parse_tokens( [ $method, 'SCHEDULE' ], \@tokens ) if @tokens;
+            die send_req( $method, 'schedule' );
+        }
 
+        #
+        # top-level resource: handle it here
+        #
+        # "/bugreport"
+        if ( $token =~ m/^bug/i ) {
+            die send_req( $method, 'bugreport' );
+        }
 
-=head2 C<GET EMPLOYEE>
-
-The same as sending a GET request for the 'employee' resource.
-
-=cut
-
-    elsif ( $token =~ m/^emp/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        parse_tokens( [ 'GET', 'EMPLOYEE' ], \@tokens ) if @tokens;
-        die send_req( 'GET', 'employee' );
-    }
-
-
-=head2 C<GET EMPLOYEE COUNT ([PRIV])>
-
-The same as sending a GET request for the 'employee/count' resource.
-
-=cut
-
-    elsif ( $token =~ m/^cou/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
-        die send_req( 'GET', 'employee/count/' . $tokens[0] ) if @tokens;
-        die send_req( 'GET', 'employee/count' );
-    }
-
-
-=head2 C<GET EMPLOYEE CURRENT>
-
-The same as sending a GET request for the 'employee/current' resource.
-
-=cut
-
-    elsif ( $token =~ m/^cur/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
-        parse_tokens( [ 'GET', 'EMPLOYEE', 'CURRENT' ], \@tokens ) if @tokens;
-        die send_req( 'GET', 'employee/current' );
-    }
-
-
-=head2 C<GET EMPLOYEE CURRENT PRIV>
-
-The same as sending a GET request for the 'employee/current/priv' resource.
-
-=cut
-
-    elsif ( $token =~ m/^pri/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE', 'CURRENT' ] ) ) {
-        die send_req( 'GET', 'employee/current/priv' );
-    }
-
-
-=head2 C<GET EMPLOYEE EID [INTEGER]>
-
-Send a GET request for the 'employee/eid/:param' resource.
-
-=cut
-
-    elsif ( $token =~ m/^eid/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
-        die send_req( 'GET', 'employee/eid/' . $tokens[0] );
-    }
-
-
-=head2 C<GET EMPLOYEE NICK [STRING]>
-
-Send a GET request for the 'employee/nick/:param' resource.
-
-=cut
-
-    elsif ( $token =~ m/^nic/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
-        die send_req( 'GET', 'employee/nick/' . $tokens[0] );
-    }
-
-
-=head2 C<GET EMPLOYEE [INTEGER]>
-
-The same as sending a GET request for the 'employee/[INTEGER]' resource. For
-example, C<GET EMPLOYEE 1> should retrieve the profile of the employee 'root'.
-
-=cut
-
-    elsif ( $token =~ m/^\d+$/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
-        die send_req( 'GET', "employee/eid/$token" );
-    }
-
-
-#=head2 C<GET EMPLOYEE [STRING]>
-#
-#The same as sending a GET request for the 'employee/[STRING]' resource, where
-#[STRING] is an alphanumeric string. For example, C<GET EMPLOYEE root> should
-#retrieve the profile of the employee 'root'.
-#
-#=cut
-#
-#    elsif ( $token =~ m/^[^\/]+$/i and eq_deeply( $pre, [ 'GET', 'EMPLOYEE' ] ) ) {
-#        die send_req( 'GET', "employee/nick/$token" );
-#    }
-#    
-#
-=head2 C<GET HELP>
-
-The same as sending a GET request for the 'help' resource.
-
-=cut
-
-    elsif ( $token =~ m/^hel/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die send_req( 'GET', "help" );
-    }
+        # "/cookies"
+        if ( $token =~ m/^coo/i ) {
+            die $CELL->status_ok( 'COOKIE_JAR', payload => App::Dochazka::CLI::HTTP::cookie_jar() );
+        }
     
+        # "/docu $RESOURCE"
+        if ( $token =~ m/^doc/i ) { 
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^htm/i ) {
+                    my $resource = join(' ', @tokens[1..$#tokens]);
+                    $resource = '"' . $resource . '"' unless $resource =~ m/^\".*\"$/;
+                    die send_req( $method, 'docu/html', $resource );
+                } else {
+                    my $resource = join(' ', @tokens);
+                    $resource = '"' . $resource . '"' unless $resource =~ m/^\".*\"$/;
+                    die send_req( $method, 'docu', $resource );
+                }
+            } else {
+                die send_req( $method, 'docu' );
+            }
+        }   
 
-=head2 C<GET METAPARAM [STRING]>
+        # "/echo [$JSON]"
+        if ( $token =~ m/^ech/i ) { 
+            die send_req( $method, 'echo', join(' ', @tokens) );
+        }   
 
-Sends the server a GET request for the resource 'metaparam/:param'
+        # "/forbidden"
+        if ( $token =~ m/^for/i ) {
+            die send_req( $method, "forbidden" );
+        }
 
-=cut
-
-    elsif ( $token =~ m/^met/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die send_req( 'GET', "metaparam/" . $tokens[0] );
-    }
+        # "/help"
+        if ( $token =~ m/^hel/i ) {
+            die send_req( $method, "help" );
+        }
     
-
-=head2 C<GET PRIVHISTORY>
-
-The same as sending a GET request for the 'privhistory' resource.
-
-=cut
-
-    elsif ( $token =~ m/^pri/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        parse_tokens( [ 'GET', 'PRIVHISTORY' ], \@tokens ) if @tokens;
-        die send_req( 'GET', "privhistory" );
-    }
+        # "/metaparam/:param [$JSON]"
+        if ( $token =~ m/^met/i ) {
+            if ( @tokens ) {
+                die send_req( $method, "metaparam/$tokens[0]", join(' ', @tokens[1..$#tokens]) );
+            }
+        }
     
+        # "/not_implemented"
+        if ( $token =~ m/^not/i ) {
+            die send_req( $method, "not_implemented" );
+        }
 
-=head2 C<GET SESSION>
+        # "/session"
+        if ( $token =~ m/^ses/i ) {
+            die send_req( $method, "session" );
+        }
 
-The same as sending a GET request for the 'session' resource.
-
-=cut
-
-    # GET SES[SION]
-    elsif ( $token =~ m/^ses/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die send_req( 'GET', "session" );
-    }
-
-
-=head2 C<GET SITEPARAM [STRING]>
-
-Sends the server a GET request for the resource 'siteparam/:param'
-
-=cut
-
-    elsif ( $token =~ m/^sit/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die send_req( 'GET', "siteparam/" . $tokens[0] );
-    }
+        # "/siteparam/:param"
+        if ( $token =~ m/^sit/i ) {
+            if ( @tokens ) {
+                die send_req( $method, "siteparam/$tokens[0]" );
+            }
+        }
     
+        # "/version"
+        if ( $token =~ m/^ver/i and eq_deeply( $pre, [ $method ] ) ) {
+            die send_req( $method, 'version' );
+        }   
 
-=head2 C<GET VERSION>
+        # "/whoami"
+        if ( $token =~ m/^who/i and eq_deeply( $pre, [ $method ] ) ) {
+            die send_req( $method, 'whoami' );
+        }   
+    }
 
-The same as sending a GET request for the 'version' resource.
+    #
+    # schedule resource handlers
+    #
+    if ( exists $pre->[1] and $pre->[1] eq 'SCHEDULE' ) {
 
-=cut
+        # "/schedule/all"
+        # "/schedule/all/disabled"
+        if ( $token =~ m/^all/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^dis/i ) {
+                    die send_req( $method, "schedule/all/disabled" );
+                }
+            }
+            die send_req( $method, "schedule/all" );
+        }
 
-    # GET VER[SION]
-    elsif ( $token =~ m/^ver/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die send_req( 'GET', 'version' );
+        # "/schedule/eid/:eid/?:ts"
+        if ( $token =~ m/^eid/i ) {
+            if ( $tokens[1] ) {
+                die send_req( $method, "schedule/eid/$tokens[0]/$tokens[1]" );
+            } 
+            if ( $tokens[0] ) {
+                die send_req( $method, "schedule/eid/$tokens[0]" );
+            }
+        }
+        
+        # "/schedule/help"
+        if ( $token =~ m/^hel/i ) {
+            die send_req( $method, 'schedule/help' );
+        }
+
+        # "/schedule/history..."
+        if ( $token =~ m/^his/i ) {
+    
+            # "/schedule/history"
+            if ( not @tokens ) {
+                die send_req( $method, "schedule/history" );
+            }
+
+            # "/schedule/history/eid/:eid [$JSON]"
+            # "/schedule/history/eid/:eid/:tsrange"
+            if ( $tokens[0] and $tokens[0] =~ m/^eid/i and $tokens[1] and $tokens[1] =~ m/^\d+$/ ) {
+                if ( $tokens[2] and $tokens[2] =~ m/^\[/ ) {
+                    die send_req( $method, "schedule/history/eid/$tokens[1]/" . join(' ', @tokens[2..$#tokens]) );
+                }
+                die send_req( $method, "schedule/history/eid/$tokens[1]", join(' ', @tokens[2..$#tokens]) );
+            }
+            
+            # "/schedule/history/nick/:nick [$JSON]
+            # "/schedule/history/nick/:nick/:tsrange
+            if ( $tokens[0] and $tokens[0] =~ m/^nic/i and $tokens[1] ) {
+                if ( $tokens[2] and $tokens[2] =~ m/^\[/ ) {
+                    die send_req( $method, "schedule/history/nick/$tokens[1]/" . join(' ', @tokens[2..$#tokens]) );
+                }
+                die send_req( $method, "schedule/history/nick/$tokens[1]", join(' ', @tokens[2..$#tokens]));
+            }
+
+            # "/schedule/history/self"
+            # "/schedule/history/self/:tsrange"
+            if ( $tokens[0] and $tokens[0] =~ m/^sel/i ) {
+                if ( $tokens[1] and $tokens[1] =~ m/^\[/ ) {
+                    die send_req( $method, "schedule/history/self/" . join(' ', @tokens[1..$#tokens]) );
+                }
+                die send_req( $method, "schedule/history/self" );
+            }
+
+            # "/schedule/history/shid/:shid
+            if ( $tokens[0] and $tokens[0] =~ m/^shi/i and $tokens[1] ) {
+                die send_req( $method, "schedule/history/shid/$tokens[1]" );
+            }
+
+        }
+
+        # "/schedule/intervals"
+        if ( $token =~ m/^int/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^({)|(\[)/ ) {
+                    die send_req( $method, "schedule/intervals", join(' ', @tokens) );
+                }
+            }
+            die send_req( $method, "schedule/intervals" );
+        }
+
+        # "/schedule/nick/:nick/?:ts"
+        if ( $token =~ m/^nic/i ) {
+            if ( $tokens[1] ) {
+                die send_req( $method, "schedule/nick/$tokens[0]/$tokens[1]" );
+            } 
+            if ( $tokens[0] ) {
+                die send_req( $method, "schedule/nick/$tokens[0]" );
+            }
+        }
+
+        # "/schedule/self/?:ts"
+        if ( $token =~ m/^sel/i ) {
+            if ( not @tokens ) {
+                die send_req( $method, "schedule/self" );
+            } else {
+                die send_req( $method, "schedule/self/$tokens[0]" );
+            }
+        }
+
+        # "/schedule/sid/:sid"
+        if ( $token =~ m/^sid/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^\d+/ ) {
+                    if ( $method =~ m/^(GET)|(DELETE)$/ ) {
+                        die send_req( $method, "schedule/sid/$tokens[0]" );
+                    }
+                    if ( exists $tokens[1] ) {
+                        die send_req( $method, "schedule/sid/$tokens[0]", join(' ', @tokens[1..$#tokens]) );
+                    }
+                }
+            }
+        }
+
+    }
+
+    #
+    # activity resource handlers
+    #
+    if ( exists $pre->[1] and $pre->[1] eq 'ACTIVITY' ) {
+        
+        # "/activity/aid"
+        # "/activity/aid/:aid"
+        if ( $token =~ m/^aid/i ) {
+#            if ( $tokens[0] =~ m/^\d+$/ ) {
+            if ( @tokens ) {
+                my $aid = $tokens[0];
+                if ( $method =~ m/^(GET)|(DELETE)$/ ) {
+                    die send_req( $method, "activity/aid/$aid" );
+                } elsif ( $method =~ m/PUT$/ ) {
+                    die send_req( $method, "activity/aid/$aid", join(' ', @tokens[1..$#tokens]) );
+                } elsif ( $method =~ m/POST$/ ) {
+                    die send_req( $method, "activity/aid", join(' ', @tokens) );
+                }
+            } else {
+                die send_req( $method, "activity/aid" );
+            }
+        }
+
+        # "/activity/all"
+        # "/activity/all/disabled"
+        if ( $token =~ m/^all/i ) {
+            if ( @tokens ) {
+                die send_req( $method, 'activity/all/disabled' ) if $tokens[0] =~ m/^dis/;
+            } else {
+                die send_req( $method, 'activity/all' );
+            }
+        }
+
+        # "/activity/code"
+        # "/activity/code/:code"
+        if ( $token =~ m/^cod/i ) {
+#            if ( $tokens[0] =~ m/^\d+$/ ) {
+            if ( @tokens ) {
+                my $code = $tokens[0];
+                if ( $method =~ m/^(GET)|(DELETE)$/ ) {
+                    die send_req( $method, "activity/code/$code" );
+                } elsif ( $method =~ m/^PUT$/ ) {
+                    die send_req( $method, "activity/code/$code", join(' ', @tokens[1..$#tokens]) );
+                } elsif ( $method =~ m/^POST$/ ) {
+                    die send_req( $method, "activity/code", join(' ', @tokens) );
+                }
+            } else {
+                die send_req( $method, "activity/code" );
+            }
+        }
+
+        # "/activity/help"
+        if ( $token =~ m/^hel/i ) {
+            die send_req( $method, 'activity/help' );
+        }
+
+    }
+
+    #
+    # employee resource handlers
+    #
+    elsif ( exists $pre->[1] and $pre->[1] eq 'EMPLOYEE' ) {
+        
+        # "/employee/count"
+        # "/employee/count/:priv"
+        if ( $token =~ m/^cou/i ) {
+            parse_tokens( [ $method, 'EMPLOYEE', 'COUNT' ], \@tokens ) if @tokens;
+            die send_req( $method, 'employee/count' );
+        } elsif ( $token =~ $anything and eq_deeply( $pre, [ $method, 'EMPLOYEE', 'COUNT' ] ) ) {
+            die send_req( $method, 'employee/count/' . $token );
+        }
+
+        # "/employee/current"
+        if ( $token =~ m/^cur/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^pri/i ) {
+                    die send_req( $method, 'employee/current/priv' );
+                }
+            } else {
+                die send_req( $method, 'employee/current' );
+            }
+        }
+
+        # "/employee/eid [$JSON]"
+        # "/employee/eid/:eid [$JSON]"
+        if ( $token =~ m/^eid/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^\d+/ ) {
+                    my $eid = $tokens[0];
+                    die send_req( $method, "employee/eid/$eid", join(' ', @tokens[1..$#tokens]) );
+                } else {
+                    die send_req( $method, 'employee/eid', join(' ', @tokens) );
+                }
+            }   
+        }
+
+        # "/employee/help"
+        if ( $token =~ m/^hel/i ) {
+            die send_req( $method, 'employee/help' );
+        }
+
+        # "/employee/nick [$JSON]"
+        # "/employee/nick/:nick [$JSON]"
+        if ( $token =~ m/^nic/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^\{/ ) {
+                    die send_req( $method, "employee/nick", join(' ', @tokens) );
+                } else {
+                    my $nick = $tokens[0];
+                    die send_req( $method, "employee/nick/$nick", join(' ', @tokens[1..$#tokens]) );
+                }
+            }
+        }
     }   
 
-
-=head2 C<GET WHOAMI>
-
-The same as sending a GET request for the 'whoami' resource.
-
-=cut
-
-    # GET WHO[AMI]
-    elsif ( $token =~ m/^who/i and eq_deeply( $pre, [ 'GET' ] ) ) {
-        die send_req( 'GET', 'whoami' );
-    }   
-
-
-=head2 C<PUT>
-
-A solitary 'PUT' is equivalent to 'PUT HELP'
-
-=cut
-
-    elsif ( $token =~ m/^put/i and eq_deeply( $pre, [] ) ) { 
-        parse_tokens( [ 'PUT' ], \@tokens ) if @tokens;
-        die send_req( 'PUT', '' );
-    }   
-
-
-=head2 C<PUT ECHO [JSON_STRING]>
-
-The same as sending a PUT request for the "echo" resource and providing a JSON
-string in the content body.
-
-=cut
-
-    elsif ( $token =~ m/^ech/i and eq_deeply( $pre, [ 'PUT' ] ) ) { 
-        die send_req( 'PUT', 'echo', join(' ', @tokens) );
-    }   
-
-
-=head2 C<PUT EMPLOYEE> 
-
-The same as sending a PUT request for the "employee" resource.
-
-=cut
-
-    elsif ( $token =~ m/^emp/i and eq_deeply( $pre, [ 'PUT' ] ) ) { 
-        parse_tokens( [ 'PUT', 'EMPLOYEE' ], \@tokens ) if @tokens;
-        die send_req( 'PUT', 'employee' );
-    }   
-
-
-=head2 C<PUT EMPLOYEE EID [STRING]> 
-
-The same as sending a PUT request for the "employee/eid/:param" resource.
-
-=cut
-
-    elsif ( $token =~ m/^eid/i and eq_deeply( $pre, [ 'PUT', 'EMPLOYEE' ] ) ) { 
-        my $eid = shift @tokens;
-        die send_req( 'PUT', "employee/eid/$eid", join( ' ' , @tokens ) );
-    }   
-
-
-=head2 C<PUT EMPLOYEE HELP> 
-
-The same as sending a PUT request for the "employee/help" resource
-
-=cut
-
-    elsif ( $token =~ m/^hel/i and eq_deeply( $pre, [ 'PUT', 'EMPLOYEE' ] ) ) { 
-        die send_req( 'PUT', 'employee' );
-    }   
-
-
-=head2 C<PUT EMPLOYEE NICK [STRING]> 
-
-The same as sending a PUT request for the "employee/nick/:param" resource.
-
-=cut
-
-    elsif ( $token =~ m/^nic/i and eq_deeply( $pre, [ 'PUT', 'EMPLOYEE' ] ) ) { 
-        my $nick = shift @tokens;
-        die send_req( 'PUT', "employee/nick/$nick", join( ' ', @tokens ) );
-    }   
-
-
-=head2 C<PUT HELP> 
-
-The same as sending a PUT request for the "help" resource
-
-=cut
-
-    elsif ( $token =~ m/^hel/i and eq_deeply( $pre, [ 'PUT' ] ) ) { 
-        die send_req( 'PUT', 'help' );
-    }   
-
-
-=head2 C<PUT PRIVHISTORY> 
-
-The same as sending a PUT request for the "help" resource
-
-=cut
-
-    elsif ( $token =~ m/^pri/i and eq_deeply( $pre, [ 'PUT' ] ) ) { 
-        parse_tokens( [ 'PUT', 'PRIVHISTORY' ], \@tokens ) if @tokens;
-        die send_req( 'PUT', 'privhistory' );
-    }   
-
-
-=head2 C<PUT PRIVHISTORY HELP> 
-
-The same as sending a PUT request for the "help" resource
-
-=cut
-
-    elsif ( $token =~ m/^pri/i and eq_deeply( $pre, [ 'PUT', 'PRIVHISTORY' ] ) ) { 
-        die send_req( 'PUT', 'privhistory/help' );
-    }   
-
-
-=head2 C<POST>
-
-A solitary 'POST' is equivalent to 'POST HELP'
-
-=cut
-
-    elsif ( $token =~ m/^pos/i and eq_deeply( $pre, [] ) ) { 
-        parse_tokens( [ 'POST' ], \@tokens ) if @tokens;
-        die send_req( 'POST', '' );
-    }   
-
-
-=head2 C<POST ECHO [JSON_STRING]>
-
-The same as sending a POST request for the "echo" resource and providing a JSON
-string in the content body.
-
-=cut
-
-    elsif ( $token =~ m/^ech/i and eq_deeply( $pre, [ 'POST' ] ) ) { 
-        die send_req( 'POST', 'echo', join(' ', @tokens) );
-    }   
-
-
-=head2 C<POST EMPLOYEE>
-
-The same as sending a POST request for the "employee" resource
-
-=cut
-
-    elsif ( $token =~ m/^emp/i and eq_deeply( $pre, [ 'POST'] ) ) { 
-        parse_tokens( [ 'POST', 'EMPLOYEE' ], \@tokens ) if @tokens;
-        die send_req( 'POST', 'employee' );
-    }   
-
-
-=head2 C<POST EMPLOYEE NICK>
-
-The same as sending a POST request for the "employee/nick" resource
-
-=cut
-
-    elsif ( $token =~ m/^nic/i and eq_deeply( $pre, [ 'POST', 'EMPLOYEE'] ) ) { 
-        die send_req( 'POST', 'employee/nick', join(' ', @tokens) );
-    }   
-
-
-
-=head2 C<POST HELP> 
-
-The same as sending a POST request for the "help" resource
-
-=cut
-
-    elsif ( $token =~ m/^hel/i and eq_deeply( $pre, [ 'POST' ] ) ) { 
-        die send_req( 'POST', 'help' );
-    }   
-
-
-=head2 C<POST PRIVHISTORY>
-
-The same as sending a POST request for the "privhistory" resource
-
-=cut
-
-    elsif ( $token =~ m/^pri/i and eq_deeply( $pre, [ 'POST'] ) ) { 
-        parse_tokens( [ 'POST', 'PRIVHISTORY' ], \@tokens ) if @tokens;
-        die send_req( 'POST', 'privhistory' );
-    }   
-
-
-    # DEL[ETE] ...
-    elsif ( $token =~ m/^del/i and eq_deeply( $pre, [] ) ) { 
-    }   
-
-    # EXI[T], QU[IT], \Q
-    elsif ( $token =~ m/^(exi)|(qu)|(\\q)/i and eq_deeply( $pre, [] ) ) { 
-        die $CELL->status_ok( 'DOCHAZKA_CLI_EXIT' );
-    }   
-
+    #
+    # priv resource handlers
+    #
+    if ( exists $pre->[1] and $pre->[1] eq 'PRIV' ) {
+
+        # "/priv"
+        if ( $token =~ m/^pri/i and eq_deeply( $pre, [ $method ] ) ) {
+            parse_tokens( [ $method, 'PRIV' ], \@tokens ) if @tokens;
+            die send_req( $method, "priv" );
+        }
+    
+        # "/priv/self/?:ts"
+        if ( $token =~ m/^sel/i ) {
+            if ( not @tokens ) {
+                die send_req( $method, "priv/self" );
+            } else {
+                die send_req( $method, "priv/self/$tokens[0]" );
+            }
+        }
+
+        # "/priv/eid/:eid/?:ts"
+        if ( $token =~ m/^eid/i ) {
+            if ( $tokens[1] ) {
+                die send_req( $method, "priv/eid/$tokens[0]/$tokens[1]" );
+            } 
+            if ( $tokens[0] ) {
+                die send_req( $method, "priv/eid/$tokens[0]" );
+            }
+        }
+        
+        # "/priv/help"
+        if ( $token =~ m/^hel/i ) {
+            die send_req( $method, 'priv/help' );
+        }
+    
+        # "/priv/history..."
+        if ( $token =~ m/^his/i ) {
+    
+            # "/priv/history"
+            if ( not @tokens ) {
+                die send_req( $method, "priv/history" );
+            }
+
+            # "/priv/history/eid/:eid [$JSON]"
+            # "/priv/history/eid/:eid/:tsrange"
+            if ( $tokens[0] and $tokens[0] =~ m/^eid/i and $tokens[1] and $tokens[1] =~ m/^\d+$/ ) {
+                if ( $tokens[2] and $tokens[2] =~ m/^\[/ ) {
+                    die send_req( $method, "priv/history/eid/$tokens[1]/" . join(' ', @tokens[2..$#tokens]) );
+                }
+                die send_req( $method, "priv/history/eid/$tokens[1]", join(' ', @tokens[2..$#tokens]) );
+            }
+            
+            # "/priv/history/nick/:nick [$JSON]
+            # "/priv/history/nick/:nick/:tsrange
+            if ( $tokens[0] and $tokens[0] =~ m/^nic/i and $tokens[1] ) {
+                if ( $tokens[2] and $tokens[2] =~ m/^\[/ ) {
+                    die send_req( $method, "priv/history/nick/$tokens[1]/" . join(' ', @tokens[2..$#tokens]) );
+                }
+                die send_req( $method, "priv/history/nick/$tokens[1]", join(' ', @tokens[2..$#tokens]));
+            }
+
+            # "/priv/history/phid/:phid
+            if ( $tokens[0] and $tokens[0] =~ m/^phi/i and $tokens[1] ) {
+                die send_req( $method, "priv/history/phid/$tokens[1]" );
+            }
+
+            # "/priv/history/self"
+            # "/priv/history/self/:tsrange"
+            if ( $tokens[0] and $tokens[0] =~ m/^sel/i ) {
+                if ( $tokens[1] and $tokens[1] =~ m/^\[/ ) {
+                    die send_req( $method, "priv/history/self/" . join(' ', @tokens[1..$#tokens]) );
+                }
+                die send_req( $method, "priv/history/self" );
+            }
+
+        }
+
+        # "/priv/nick/:nick/?:ts"
+        if ( $token =~ m/^nic/i ) {
+            if ( $tokens[1] ) {
+                die send_req( $method, "priv/nick/$tokens[0]/$tokens[1]" );
+            } 
+            if ( $tokens[0] ) {
+                die send_req( $method, "priv/nick/$tokens[0]" );
+            }
+        }
+
+    
+    }
+
+    # we have gone all the way through the state machine without a match
     die $CELL->status_err( 'DOCHAZKA_CLI_PARSE_ERROR' );
 }
 
