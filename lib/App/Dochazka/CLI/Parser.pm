@@ -51,11 +51,11 @@ App::Dochazka::CLI::Parser - Parser for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.057
+Version 0.058
 
 =cut
 
-our $VERSION = '0.057';
+our $VERSION = '0.058';
 our $anything = qr/^.+$/i;
 
 

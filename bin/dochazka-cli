@@ -57,11 +57,11 @@ dochazka-cli - Command-line client for Dochazka Attendance & Time Tracking Syste
 
 =head1 VERSION
 
-Version 0.057
+Version 0.058
 
 =cut
 
-our $VERSION = '0.057';
+our $VERSION = '0.058';
 
 
 =head1 SYNOPSIS

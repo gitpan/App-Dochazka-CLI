@@ -224,3 +224,6 @@ Revision history for App-Dochazka-CLI
 0.057  2014-11-19 11:06 CET
 - Parser.pm: handle more interval resources
 
+0.058  2014-11-19 11:27 CET
+- Build.PL: admit two important dependencies
+

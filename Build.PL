@@ -28,6 +28,8 @@ my $build = Module::Build->new(
     },
     requires           => {
         'perl'               => 5.012,
+        'App::CELL'          => 0.201,
+        'App::Dochazka'      => 0.181,
         'HTTP::Cookies'      => 0,
         'HTTP::Request'      => 0,
         'Getopt::Long'       => 2.32,
