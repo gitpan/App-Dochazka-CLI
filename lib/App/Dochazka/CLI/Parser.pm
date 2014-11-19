@@ -51,11 +51,11 @@ App::Dochazka::CLI::Parser - Parser for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.053
+Version 0.057
 
 =cut
 
-our $VERSION = '0.053';
+our $VERSION = '0.057';
 our $anything = qr/^.+$/i;
 
 
@@ -173,6 +173,14 @@ sub parse_tokens {
         }
 
         #
+        # interval resource: recurse
+        #
+        if ( $token =~ m/^int/i ) {
+            parse_tokens( [ $method, 'INTERVAL' ], \@tokens ) if @tokens;
+            die send_req( $method, 'interval' );
+        }
+
+        #
         # top-level resource: handle it here
         #
         # "/bugreport"
@@ -251,6 +259,68 @@ sub parse_tokens {
             die send_req( $method, 'whoami' );
         }   
     }
+
+    #
+    # interval resource handlers
+    #
+    if ( exists $pre->[1] and $pre->[1] eq 'INTERVAL' ) {
+
+        # "/interval/eid/:eid/:tsrange"
+        if ( $token =~ m/^eid$/ ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^\d+$/ ) {
+                    my $eid = shift @tokens;
+                    if ( @tokens ) {
+                        my $tsrange = join(' ', @tokens);
+                        if ( $tsrange =~ m/\[.+\)/ ) {
+                            die send_req( $method, "interval/eid/$eid/$tsrange" );
+                        }
+                    }
+                }
+            }
+        }
+
+        # "/interval/help"
+        if ( $token =~ m/^hel/i ) {
+            die send_req( $method, 'interval/help' );
+        }
+
+        # "/interval/iid"
+        # "/interval/iid/:iid"
+        if ( $token =~ m/^iid$/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^[\[{]/ ) {
+                    die send_req( $method, "interval/iid" . join(' ', @tokens) );
+                } elsif ( $tokens[0] =~ m/^\d+/ ) {
+                    die send_req( $method, "interval/iid/$tokens[0]", join(' ', @tokens[1..$#tokens]) );
+                }
+            }
+        }
+
+        # "/interval/new"
+        if ( $token =~ m/^new/i ) {
+            if ( @tokens ) {
+                die send_req( $method, 'interval/new', join(' ', @tokens) );
+            }
+        }
+
+        # "/interval/nick/:nick/:tsrange"
+        if ( $token =~ m/^nick$/ ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^[A-Za-z0-9_].+/ ) {
+                    my $nick = shift @tokens;
+                    if ( @tokens ) {
+                        my $tsrange = join(' ', @tokens);
+                        if ( $tsrange =~ m/\[.+\)/ ) {
+                            die send_req( $method, "interval/nick/$nick/$tsrange" );
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
 
     #
     # schedule resource handlers
@@ -443,13 +513,18 @@ sub parse_tokens {
         }
 
         # "/employee/current"
-        if ( $token =~ m/^cur/i ) {
+        # "/employee/current/priv"
+        # "/employee/self"
+        # "/employee/self/priv"
+        if ( $token =~ m/^sel/i or $token =~ m/^cur/i ) {
             if ( @tokens ) {
                 if ( $tokens[0] =~ m/^pri/i ) {
-                    die send_req( $method, 'employee/current/priv' );
+                    die send_req( $method, 'employee/self/priv' );
+                } elsif ( $method ne 'GET' ) {
+                    die send_req( $method, 'employee/self', join(' ', @tokens ) );
                 }
             } else {
-                die send_req( $method, 'employee/current' );
+                die send_req( $method, 'employee/self' );
             }
         }
 

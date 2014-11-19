@@ -57,11 +57,11 @@ dochazka-cli - Command-line client for Dochazka Attendance & Time Tracking Syste
 
 =head1 VERSION
 
-Version 0.053
+Version 0.057
 
 =cut
 
-our $VERSION = '0.053';
+our $VERSION = '0.057';
 
 
 =head1 SYNOPSIS
@@ -148,7 +148,7 @@ sub init_cli_client {
     }
 
     # get info about us
-    $status = send_req( 'GET', '/employee/current/priv' );
+    $status = send_req( 'GET', '/employee/self/priv' );
     return $status unless $status->ok;
     #print Dumper( $status );
     $current_emp->reset( %{ $status->payload->{'current_emp'} } );

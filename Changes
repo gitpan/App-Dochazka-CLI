@@ -211,3 +211,16 @@ Revision history for App-Dochazka-CLI
 0.053  2014-11-06 16:35 CET
 - Parser.pm: support '/schedule/sid/:sid' resource
 
+0.054  2014-11-13 22:22 CET
+- Parser.pm: make 'employee/self' and 'employee/self/priv' be synonyms for
+  'employee/current' and 'employee/current/priv', respectively
+
+0.055  2014-11-14 10:06 CET
+- Parser.pm: handle POST requests on 'employee/{current,self}'
+
+0.056  2014-11-19 09:43 CET
+- Parser.pm: let parser recognize '$method interval help' and '$method interval new'
+
+0.057  2014-11-19 11:06 CET
+- Parser.pm: handle more interval resources
+

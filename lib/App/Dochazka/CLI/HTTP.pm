@@ -54,11 +54,11 @@ App::Dochazka::CLI::HTTP - HTTP for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.053
+Version 0.057
 
 =cut
 
-our $VERSION = '0.053';
+our $VERSION = '0.057';
 
 
 
