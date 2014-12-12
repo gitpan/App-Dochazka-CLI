@@ -227,3 +227,22 @@ Revision history for App-Dochazka-CLI
 0.058  2014-11-19 11:27 CET
 - Build.PL: admit two important dependencies
 
+0.059  2014-11-19 15:13 CET
+- Parser.pm: handle 'interval/self/:tsrange' resource
+
+0.060  2014-11-19 22:55 CET
+- Parser.pm: Resources.pm no longer accepts non-hash JSON - adapt 'post docu'
+  and 'post docu html' to wrap argument in { "resource" : ... }
+
+0.061  2014-11-20 13:59 CET
+- Parser.pm: handle both 'metaparam' and 'metaparam/:param' after split
+
+0.062  2014-11-20 18:14 CET
+- Parser.pm: handle lock resources
+
+0.063  2014-12-03 22:24 CET
+- Parser.pm: support the new 'dbstatus' top-level resource
+
+0.064  2014-12-10 09:07 CET
+- Parser.pm: '/schedule/new' was missing - add it
+

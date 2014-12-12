@@ -28,7 +28,7 @@
       },
       "runtime" : {
          "requires" : {
-            "App::CELL" : "0.201",
+            "App::CELL" : "0.202",
             "App::Dochazka" : "0.181",
             "File::ShareDir" : "1.00",
             "Getopt::Long" : "2.32",
@@ -46,15 +46,15 @@
    "provides" : {
       "App::Dochazka::CLI" : {
          "file" : "lib/App/Dochazka/CLI.pm",
-         "version" : "0.058"
+         "version" : "0.064"
       },
       "App::Dochazka::CLI::HTTP" : {
          "file" : "lib/App/Dochazka/CLI/HTTP.pm",
-         "version" : "0.058"
+         "version" : "0.064"
       },
       "App::Dochazka::CLI::Parser" : {
          "file" : "lib/App/Dochazka/CLI/Parser.pm",
-         "version" : "0.058"
+         "version" : "0.064"
       }
    },
    "release_status" : "stable",
@@ -67,5 +67,5 @@
          "url" : "https://sourceforge.net/p/dochazka/code/"
       }
    },
-   "version" : "0.058"
+   "version" : "0.064"
 }

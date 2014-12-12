@@ -51,11 +51,11 @@ App::Dochazka::CLI::Parser - Parser for Dochazka command line client
 
 =head1 VERSION
 
-Version 0.058
+Version 0.064
 
 =cut
 
-our $VERSION = '0.058';
+our $VERSION = '0.064';
 our $anything = qr/^.+$/i;
 
 
@@ -181,6 +181,14 @@ sub parse_tokens {
         }
 
         #
+        # lock resource: recurse
+        #
+        if ( $token =~ m/^loc/i ) {
+            parse_tokens( [ $method, 'LOCK' ], \@tokens ) if @tokens;
+            die send_req( $method, 'lock' );
+        }
+
+        #
         # top-level resource: handle it here
         #
         # "/bugreport"
@@ -193,17 +201,22 @@ sub parse_tokens {
             die $CELL->status_ok( 'COOKIE_JAR', payload => App::Dochazka::CLI::HTTP::cookie_jar() );
         }
     
+        # "/dbstatus" 
+        if ( $token =~ m/^dbs/i ) {
+            die send_req( $method, 'dbstatus' );
+        }
+
         # "/docu $RESOURCE"
         if ( $token =~ m/^doc/i ) { 
             if ( @tokens ) {
                 if ( $tokens[0] =~ m/^htm/i ) {
                     my $resource = join(' ', @tokens[1..$#tokens]);
                     $resource = '"' . $resource . '"' unless $resource =~ m/^\".*\"$/;
-                    die send_req( $method, 'docu/html', $resource );
+                    die send_req( $method, 'docu/html', "{ \"resource\" : $resource }" );
                 } else {
                     my $resource = join(' ', @tokens);
                     $resource = '"' . $resource . '"' unless $resource =~ m/^\".*\"$/;
-                    die send_req( $method, 'docu', $resource );
+                    die send_req( $method, 'docu', "{ \"resource\" : $resource }" );
                 }
             } else {
                 die send_req( $method, 'docu' );
@@ -225,10 +238,19 @@ sub parse_tokens {
             die send_req( $method, "help" );
         }
     
-        # "/metaparam/:param [$JSON]"
+        # "/metaparam $JSON"
+        # "/metaparam/:param"
         if ( $token =~ m/^met/i ) {
             if ( @tokens ) {
-                die send_req( $method, "metaparam/$tokens[0]", join(' ', @tokens[1..$#tokens]) );
+                if ( $method =~ m/^(GET)|(PUT)|(DELETE)$/ ) {
+                    die send_req( $method, "metaparam/$tokens[0]" );
+                }
+                if ( $tokens[0] =~ m/^{/ ) {
+                    die send_req( $method, "metaparam", join(' ', @tokens) );
+                } 
+                my $new_value = join(' ', @tokens[1..$#tokens]);
+                $new_value = '"' . $new_value . '"' unless $new_value =~ m/^({)|(\[)/;
+                die send_req( $method, "metaparam", "{ \"name\" : \"$tokens[0]\", \"value\" : $new_value }" );
             }
         }
     
@@ -290,7 +312,7 @@ sub parse_tokens {
         if ( $token =~ m/^iid$/i ) {
             if ( @tokens ) {
                 if ( $tokens[0] =~ m/^[\[{]/ ) {
-                    die send_req( $method, "interval/iid" . join(' ', @tokens) );
+                    die send_req( $method, "interval/iid", join(' ', @tokens) );
                 } elsif ( $tokens[0] =~ m/^\d+/ ) {
                     die send_req( $method, "interval/iid/$tokens[0]", join(' ', @tokens[1..$#tokens]) );
                 }
@@ -316,6 +338,88 @@ sub parse_tokens {
                         }
                     }
                 }
+            }
+        }
+
+        # "/interval/self/:tsrange"
+        if ( $token =~ m/^self$/ ) {
+            if ( @tokens ) {
+                 my $tsrange = join(' ', @tokens);
+                 if ( $tsrange =~ m/\[.+\)/ ) {
+                     die send_req( $method, "interval/self/$tsrange" );
+                 }
+            }
+        }
+
+    }
+
+
+    #
+    # lock resource handlers
+    #
+    if ( exists $pre->[1] and $pre->[1] eq 'LOCK' ) {
+
+        # "/lock/eid/:eid/:tsrange"
+        if ( $token =~ m/^eid$/ ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^\d+$/ ) {
+                    my $eid = shift @tokens;
+                    if ( @tokens ) {
+                        my $tsrange = join(' ', @tokens);
+                        if ( $tsrange =~ m/\[.+\)/ ) {
+                            die send_req( $method, "lock/eid/$eid/$tsrange" );
+                        }
+                    }
+                }
+            }
+        }
+
+        # "/lock/help"
+        if ( $token =~ m/^hel/i ) {
+            die send_req( $method, 'lock/help' );
+        }
+
+        # "/lock/lid"
+        # "/lock/lid/:lid"
+        if ( $token =~ m/^lid$/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^[\[{]/ ) {
+                    die send_req( $method, "lock/lid", join(' ', @tokens) );
+                } elsif ( $tokens[0] =~ m/^\d+/ ) {
+                    die send_req( $method, "lock/lid/$tokens[0]", join(' ', @tokens[1..$#tokens]) );
+                }
+            }
+        }
+
+        # "/lock/new"
+        if ( $token =~ m/^new/i ) {
+            if ( @tokens ) {
+                die send_req( $method, 'lock/new', join(' ', @tokens) );
+            }
+        }
+
+        # "/lock/nick/:nick/:tsrange"
+        if ( $token =~ m/^nick$/ ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^[A-Za-z0-9_].+/ ) {
+                    my $nick = shift @tokens;
+                    if ( @tokens ) {
+                        my $tsrange = join(' ', @tokens);
+                        if ( $tsrange =~ m/\[.+\)/ ) {
+                            die send_req( $method, "lock/nick/$nick/$tsrange" );
+                        }
+                    }
+                }
+            }
+        }
+
+        # "/lock/self/:tsrange"
+        if ( $token =~ m/^self$/ ) {
+            if ( @tokens ) {
+                 my $tsrange = join(' ', @tokens);
+                 if ( $tsrange =~ m/\[.+\)/ ) {
+                     die send_req( $method, "lock/self/$tsrange" );
+                 }
             }
         }
 
@@ -403,6 +507,15 @@ sub parse_tokens {
                 }
             }
             die send_req( $method, "schedule/intervals" );
+        }
+
+        # "/schedule/new"
+        if ( $token =~ m/^new/i ) {
+            if ( @tokens ) {
+                if ( $tokens[0] =~ m/^({)|(\[)/ ) {
+                    die send_req( $method, "schedule/new", join(' ', @tokens) );
+                }
+            }
         }
 
         # "/schedule/nick/:nick/?:ts"

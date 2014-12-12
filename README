@@ -2,7 +2,7 @@ NAME
     App::Dochazka::CLI - Dochazka command line client
 
 VERSION
-    Version 0.058
+    Version 0.064
 
 SYNOPSIS
     Dochazka command line client.
